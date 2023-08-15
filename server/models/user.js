@@ -75,6 +75,12 @@ userSchema.pre("save", async function (next) {
     const salt = bcrypt.genSaltSync(10);
     this.password = await bcrypt.hash(this.password, salt);
 });
+userSchema.methods = {
+    //so sánh mật khẩu trong db với người nhập
+    isCorrectPassword: async function (password) {
+        return await bcrypt.compare(password, this.password); // trả về  true hoặc false
+    },
+};
 
 //Export the model
 module.exports = mongoose.model("User", userSchema);
