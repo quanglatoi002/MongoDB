@@ -1,6 +1,6 @@
 const User = require("../models/user");
 const asyncHandler = require("express-async-handler");
-
+const { generateAccessToken } = require("../middlewares/jwt");
 //Register
 const register = asyncHandler(async (req, res) => {
     //phải kiểm tra xem đã nhập đầy đủ thông tin cần thiết chưa
@@ -43,8 +43,10 @@ const login = asyncHandler(async (req, res) => {
     if (response && (await response.isCorrectPassword(password))) {
         //ở đoạn này ko thể show password, role từ db lên được.
         const { password, role, ...userData } = response.toObject();
+        const accessToken = generateAccessToken(response._id, role);
         return res.status(200).json({
             success: true,
+            accessToken,
             userData,
         });
     } else {
