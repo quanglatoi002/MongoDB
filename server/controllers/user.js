@@ -1,6 +1,9 @@
 const User = require("../models/user");
 const asyncHandler = require("express-async-handler");
-const { generateAccessToken } = require("../middlewares/jwt");
+const {
+    generateAccessToken,
+    generateRefreshToken,
+} = require("../middlewares/jwt");
 //Register
 const register = asyncHandler(async (req, res) => {
     //phải kiểm tra xem đã nhập đầy đủ thông tin cần thiết chưa
@@ -27,6 +30,7 @@ const register = asyncHandler(async (req, res) => {
 });
 
 //Login
+//Nhiệm vụ của refresh token là cấp mới access token mà thôi
 const login = asyncHandler(async (req, res) => {
     //phải kiểm tra xem đã nhập đầy đủ thông tin cần thiết chưa
     const { email, password } = req.body;
@@ -44,6 +48,19 @@ const login = asyncHandler(async (req, res) => {
         //ở đoạn này ko thể show password, role từ db lên được.
         const { password, role, ...userData } = response.toObject();
         const accessToken = generateAccessToken(response._id, role);
+        // refresh token
+        const refreshToken = generateRefreshToken(response._id);
+        // Lưu refresh token vào database
+        res.cookie("refreshToken", refreshToken, {
+            httpOnly: true,
+            maxAge: 7 * 24 * 60 * 60 * 10000,
+        });
+        await User.findByIdAndUpdate(
+            response._id,
+            { refreshToken },
+            { new: true }
+        );
+        //Lưu refresh token vào cookie
         return res.status(200).json({
             success: true,
             accessToken,
