@@ -4,6 +4,7 @@ const {
     generateAccessToken,
     generateRefreshToken,
 } = require("../middlewares/jwt");
+const jwt = require("jsonwebtoken");
 //Register
 const register = asyncHandler(async (req, res) => {
     //phải kiểm tra xem đã nhập đầy đủ thông tin cần thiết chưa
@@ -51,16 +52,16 @@ const login = asyncHandler(async (req, res) => {
         // refresh token
         const refreshToken = generateRefreshToken(response._id);
         // Lưu refresh token vào database
-        res.cookie("refreshToken", refreshToken, {
-            httpOnly: true,
-            maxAge: 7 * 24 * 60 * 60 * 10000,
-        });
         await User.findByIdAndUpdate(
             response._id,
             { refreshToken },
             { new: true }
         );
         //Lưu refresh token vào cookie
+        res.cookie("refreshToken", refreshToken, {
+            httpOnly: true,
+            maxAge: 7 * 24 * 60 * 60 * 10000,
+        });
         return res.status(200).json({
             success: true,
             accessToken,
@@ -72,7 +73,9 @@ const login = asyncHandler(async (req, res) => {
 });
 
 const getCurrent = asyncHandler(async (req, res) => {
+    // nhận _id từ phía client gửi về
     const { _id } = req.user;
+    // tìm theo id đã lấy được từ client gửi xuống và lấy all loại trừ refreshToken, password, role
     const user = await User.findById({ _id }).select(
         "-refreshToken -password -role"
     );
@@ -82,8 +85,39 @@ const getCurrent = asyncHandler(async (req, res) => {
     });
 });
 
+//refresh
+const refreshAccessToken = asyncHandler(async (req, res) => {
+    //lấy cookie
+    const cookie = req.cookies;
+    // check nếu như ko có cookie
+    if (!cookie && !cookie?.refreshToken)
+        throw new Error("No refresh token in cookie");
+    //nếu như có cookie
+    jwt.verify(
+        cookie.refreshToken,
+        process.env.JWT_SECRET,
+        //decode sẽ nhận giá trị sau khi được mã hóa xg
+        async (err, decode) => {
+            if (err) throw new Error("Invalid refresh token");
+            //_id được lấy ra từ verify refresh token
+            const response = await User.findOne({
+                _id: decode._id,
+                refreshToken: cookie.refreshToken,
+            });
+            // tạo mới accessToken
+            return res.status(200).json({
+                success: response ? true : false,
+                newAccessToken: response
+                    ? generateAccessToken(response._id, refreshAccessToken.role)
+                    : "Refresh token not invalid",
+            });
+        }
+    );
+});
+
 module.exports = {
     register,
     login,
     getCurrent,
+    refreshAccessToken,
 };
