@@ -133,6 +133,23 @@ const logout = asyncHandler(async (req, res) => {
     });
 });
 
+//Thay đổi mật khẩu
+//client side gửi email
+//Server check email có hợp lệ ko => Gửi email + kèm theo link (password change token)
+//Client check mail => click vào link đã được phía server gửi về.
+//Client gửi api kèm token
+//Check token có giống với token mà server gửi email hay ko
+
+const forgotPassword = asyncHandler(async (req, res) => {
+    // nhận email khi user change password
+    const { email } = req.query;
+    // nếu user not input email then note miss email
+    if (!email) throw new Error("Missing email");
+    // có email thì tìm trg db email đó
+    const user = await User.findOne({ email });
+    if (!user) throw new Error("Email not found");
+    // const resetToken
+});
 module.exports = {
     register,
     login,
