@@ -90,29 +90,47 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
     //lấy cookie
     const cookie = req.cookies;
     // check nếu như ko có cookie
-    if (!cookie && !cookie?.refreshToken)
+    if (!cookie || !cookie?.refreshToken)
         throw new Error("No refresh token in cookie");
-    //nếu như có cookie
-    jwt.verify(
-        cookie.refreshToken,
-        process.env.JWT_SECRET,
-        //decode sẽ nhận giá trị sau khi được mã hóa xg
-        async (err, decode) => {
-            if (err) throw new Error("Invalid refresh token");
-            //_id được lấy ra từ verify refresh token
-            const response = await User.findOne({
-                _id: decode._id,
-                refreshToken: cookie.refreshToken,
-            });
-            // tạo mới accessToken
-            return res.status(200).json({
-                success: response ? true : false,
-                newAccessToken: response
-                    ? generateAccessToken(response._id, refreshAccessToken.role)
-                    : "Refresh token not invalid",
-            });
-        }
+    //verify cookie đã được lưu trên trình duyệt
+    const rs = await jwt.verify(cookie.refreshToken, process.env.JWT_SECRET);
+    // sau khi verify sẽ lấy được _id trước khi mã hóa. Tìm kiếm dựa vào id đã được mã hóa từ refresh token và refresh token đã lưu trên cookie
+    const response = await User.findOne({
+        _id: rs._id,
+        refreshToken: cookie.refreshToken,
+    });
+    // tạo mới accessToken
+    return res.status(200).json({
+        success: response ? true : false,
+        newAccessToken: response
+            ? generateAccessToken(response._id, response.role)
+            : "Refresh token not invalid",
+    });
+});
+
+//logout ở phía server
+const logout = asyncHandler(async (req, res) => {
+    const cookie = req.cookies;
+    // nếu như không có resfreshToken trong cookie
+    if (!cookie || !cookie.refreshToken)
+        throw new Error("No refresh token in cookie");
+    //new: true sẽ trả về kết quả sau khi cập nhật
+    //xóa refresh token ở db
+    await User.findOneAndUpdate(
+        { refreshToken: cookie.refreshToken },
+        { refreshToken: "" },
+        { new: true }
     );
+    // xóa cookie trên trình duyệt
+    res.cookie("refreshToken", "", {
+        expires: new Date(0),
+        httpOnly: true, // làm cho cookie không thể try cập = Js trong trình duyệt
+        secure: true, // yêu cầu cookie chỉ được gửi qua kết nối an toàn HTTPS
+    });
+    return res.status(200).json({
+        success: true,
+        message: "Logout completed successfully",
+    });
 });
 
 module.exports = {
@@ -120,4 +138,5 @@ module.exports = {
     login,
     getCurrent,
     refreshAccessToken,
+    logout,
 };

@@ -4,6 +4,7 @@ const asyncHandler = require("express-async-handler");
 const verifyAccessToken = asyncHandler(async (req, res, next) => {
     //Bearer token
     if (req?.headers?.authorization?.startsWith("Bearer")) {
+        // nhận token trả về từ phía client gửi về server và xác thực token vừa lấy được với mã đã được dùng trước đó để mã hóa access token
         const token = req.headers?.authorization?.split(" ")[1];
         jwt.verify(token, process.env.JWT_SECRET, (err, decode) => {
             if (err)
