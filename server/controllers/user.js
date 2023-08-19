@@ -6,6 +6,8 @@ const {
 } = require("../middlewares/jwt");
 const jwt = require("jsonwebtoken");
 const sendMail = require("../utils/sendMail");
+const crypto = require("crypto");
+
 //Register
 const register = asyncHandler(async (req, res) => {
     //phải kiểm tra xem đã nhập đầy đủ thông tin cần thiết chưa
@@ -165,6 +167,21 @@ const forgotPassword = asyncHandler(async (req, res) => {
         rs,
     });
 });
+
+const resetPassword = asyncHandler(async (req, res) => {
+    const { password, token } = req.body;
+    const passwordResetToken = crypto
+        .createHash("sha256")
+        .update(token)
+        .digest("hex");
+    const user = await User.findOne({
+        passwordResetToken,
+        passwordResetExpires: { $gt: Date.now() },
+    });
+    if (!user) throw new Error("Invalid reset token");
+    user.password;
+    // const {password} =
+});
 module.exports = {
     register,
     login,
@@ -172,4 +189,5 @@ module.exports = {
     refreshAccessToken,
     logout,
     forgotPassword,
+    resetPassword,
 };
