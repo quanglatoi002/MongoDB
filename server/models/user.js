@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 const bcrypt = require("bcrypt");
-const crypto = require("node:crypto");
+const crypto = require("crypto");
 
 // Declare the Schema of the Mongo model
 var userSchema = new mongoose.Schema(
@@ -82,6 +82,7 @@ userSchema.methods = {
         return await bcrypt.compare(password, this.password); // trả về  true hoặc false
     },
     createPasswordChangeToken: function () {
+        //hệ lục phân 32 ký tự
         const resetToken = crypto.randomBytes(32).toString("hex");
         this.passwordResetToken = crypto
             .createHash("sha256")
