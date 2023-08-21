@@ -50,18 +50,19 @@ const login = asyncHandler(async (req, res) => {
     // nếu email có tồn tại và mật khẩu so sánh đúng
     if (response && (await response.isCorrectPassword(password))) {
         //ở đoạn này ko thể show password, role từ db lên được.
-        const { password, role, ...userData } = response.toObject();
+        const { password, role, refreshToken, ...userData } =
+            response.toObject();
         const accessToken = generateAccessToken(response._id, role);
         // refresh token
-        const refreshToken = generateRefreshToken(response._id);
+        const newRefreshToken = generateRefreshToken(response._id);
         // Lưu refresh token vào database
         await User.findByIdAndUpdate(
             response._id,
-            { refreshToken },
+            { refreshToken: newRefreshToken },
             { new: true }
         );
         //Lưu refresh token vào cookie
-        res.cookie("refreshToken", refreshToken, {
+        res.cookie("refreshToken", newRefreshToken, {
             httpOnly: true,
             maxAge: 7 * 24 * 60 * 60 * 10000,
         });
@@ -83,12 +84,13 @@ const getCurrent = asyncHandler(async (req, res) => {
         "-refreshToken -password -role"
     );
     return res.status(200).json({
-        success: false,
+        success: user ? true : false,
         rs: user ? user : "User not found",
     });
 });
 
 //refresh
+//lấy lại accessToken thông qua refreshAccessToken
 const refreshAccessToken = asyncHandler(async (req, res) => {
     //lấy cookie
     const cookie = req.cookies;
@@ -182,6 +184,7 @@ const resetPassword = asyncHandler(async (req, res) => {
         passwordResetExpires: { $gt: Date.now() },
     });
     if (!user) throw new Error("Invalid reset token");
+    // cập nhật lại mật khẩu
     user.password = password;
     user.passwordResetToken = undefined;
     user.passwordChangedAt = Date.now();
@@ -192,6 +195,58 @@ const resetPassword = asyncHandler(async (req, res) => {
         mes: user ? "Updated password" : "Something went wrong",
     });
 });
+
+//lấy toàn bộ người dùng => để lấy toàn bộ ng dùng thì cần phải là admin
+const getUsers = asyncHandler(async (req, res) => {
+    const response = await User.find().select("-refreshToken -password -role");
+    return res
+        .status(200)
+        .json({ success: response ? true : false, user: response });
+});
+//Delete
+const deleteUser = asyncHandler(async (req, res) => {
+    const { _id } = req.query;
+    if (!_id) throw new Error("Missing inputs");
+    const response = await User.findByIdAndDelete(_id);
+    return res.status(200).json({
+        success: response ? true : false,
+        deleteUser: response
+            ? `User with email ${response.email} deleted`
+            : "No user delete",
+    });
+});
+
+//Update
+const updateUser = asyncHandler(async (req, res) => {
+    // req.user chứa _id sau khi verifyToken
+    const { _id } = req.user;
+    console.log(_id);
+    //nếu như có id mà user ko có thay đổi thì cần phải kiểm tra độ dài của của mảng đó
+    if (!_id || Object.keys(req.body).length === 0)
+        throw new Error("Missing inputs");
+    const response = await User.findByIdAndUpdate(_id, req.body, {
+        new: true,
+    }).select("-password -role -refreshToken");
+    return res.status(200).json({
+        success: response ? true : false,
+        updatedUser: response ? response : "Something went wrong",
+    });
+});
+
+//updateUserByAdmin
+const updateUserByAdmin = asyncHandler(async (req, res) => {
+    const { uid } = req.params;
+
+    if (Object.keys(req.body).length === 0) throw new Error("Missing inputs");
+    const response = await User.findByIdAndUpdate(uid, req.body, {
+        new: true,
+    }).select("-password -role -refreshToken");
+    return res.status(200).json({
+        success: response ? true : false,
+        updatedUser: response ? response : "Some thing went wrong",
+    });
+});
+
 module.exports = {
     register,
     login,
@@ -200,4 +255,7 @@ module.exports = {
     logout,
     forgotPassword,
     resetPassword,
+    getUsers,
+    deleteUser,
+    updateUser,
 };
