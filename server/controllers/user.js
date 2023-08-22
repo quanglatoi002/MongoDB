@@ -258,4 +258,5 @@ module.exports = {
     getUsers,
     deleteUser,
     updateUser,
+    updateUserByAdmin,
 };
