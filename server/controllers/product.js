@@ -26,12 +26,40 @@ const getProduct = asyncHandler(async (req, res) => {
 });
 
 //get products
+//Tiếp theo là Filtering, sorting & pagination
 const getProducts = asyncHandler(async (req, res) => {
-    const products = await Product.find();
-    return res.status(200).json({
-        success: products ? true : false,
-        productsData: products ? products : "Could not get products",
-    });
+    const queries = { ...req.query };
+    //Tách các trường đặc biệt ra khỏi query
+    const excludeFields = ["limit", "sort", "page", "fields"];
+    excludeFields.forEach((el) => delete queries[el]);
+    //Format
+    let queryString = JSON.stringify(queries);
+    console.log(queryString);
+    queryString = queryString.replace(/\b(gte|gt|lt|lte)\b/g, (el) => `$${el}`);
+    const formattedQueries = JSON.parse(queryString);
+    console.log(formattedQueries);
+    // price : {}
+    //Filtering
+    // chỉ cần 1 chữ tồn tại trong nd cần tìm thì nó sẽ hiện ra toàn bộ, "i" không phân biệt chữ hoa và thường.
+    if (queries?.title)
+        formattedQueries.title = { $regex: queries.title, $options: "i" };
+    let queryCommand = Product.find(formattedQueries);
+
+    //Execute the query
+    // tìm ra số lượng thỏa đk và số lượng sp gọi ra từ API
+    try {
+        const response = await queryCommand.exec();
+        // tìm ra số lượng thoải đk vd price : {"$gt : 5000"}
+        const counts = await Product.find(formattedQueries).countDocuments();
+
+        return res.status(200).json({
+            success: response ? true : false,
+            products: response ? response : "Could not get products",
+            counts,
+        });
+    } catch (err) {
+        throw new Error(err.message);
+    }
 });
 
 //update product
