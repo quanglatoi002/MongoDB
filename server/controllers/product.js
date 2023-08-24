@@ -45,6 +45,15 @@ const getProducts = asyncHandler(async (req, res) => {
         formattedQueries.title = { $regex: queries.title, $options: "i" };
     let queryCommand = Product.find(formattedQueries);
 
+    //Sorting
+    // quang, thai, van => [quang, thai, van] => quang thai van
+    if (req.query.sort) {
+        const sortBy = req.query.sort.split(",").join(" ");
+        console.log(sortBy);
+        //sort(title firstname)
+
+        queryCommand = queryCommand.sort(sortBy);
+    }
     //Execute the query
     // tìm ra số lượng thỏa đk và số lượng sp gọi ra từ API
     try {
