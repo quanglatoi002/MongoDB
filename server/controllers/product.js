@@ -112,10 +112,25 @@ const deleteProduct = asyncHandler(async (req, res) => {
 });
 
 //RATINGS
-const ratings = asyncHandler((req, res) => {
-    // const { _id } = req.user;
-    // const { star, comment, pid } = req.body;
-    // if (!star || !pid) throw new Error("Missing input");
+const ratings = asyncHandler(async (req, res) => {
+    const { _id } = req.user;
+    const { star, comment, pid } = req.body;
+    if (!star || !pid) throw new Error("Missing input");
+    const ratingProduct = await Product.findById(pid);
+    const alreadyRating = ratingProduct?.ratings?.some((el) =>
+        el.postedBy.some((uid) => uid === _id)
+    );
+    if (alreadyRating) {
+    } else {
+        const response = await Product.findById(
+            pid,
+            {
+                $push: { ratings: { star, comment, postedBy: _id } },
+            },
+            { new: true }
+        );
+    }
+    return res.status(200).json({});
 });
 
 module.exports = {
