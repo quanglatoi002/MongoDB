@@ -120,7 +120,6 @@ const ratings = asyncHandler(async (req, res) => {
     const alreadyRating = ratingProduct?.ratings?.find(
         (el) => el.postedBy.toString() === _id
     );
-    console.log(alreadyRating);
     //update star & cm
     //$elemMatch đc sử dụng để tìm các tài liệu trong 1 mảng sao cho 1 || nhiều điều kiện được xác định, thường dùng như mảng các đối tượng hoặc mảng các giá trị
     if (alreadyRating) {
@@ -141,8 +140,23 @@ const ratings = asyncHandler(async (req, res) => {
             { new: true }
         );
     }
+
+    //sum ratings
+    const updatedProduct = await Product.findById(pid);
+    const ratingCount = updatedProduct.ratings.length;
+    const sumRatings = updatedProduct.ratings.reduce(
+        (sum, el) => sum + +el.star,
+        0
+    );
+
+    updatedProduct.totalRatings =
+        Math.round((sumRatings * 10) / ratingCount) / 10;
+
+    await updatedProduct.save();
+
     return res.status(200).json({
         status: true,
+        updatedProduct,
     });
 });
 
