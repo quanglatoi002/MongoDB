@@ -117,12 +117,23 @@ const ratings = asyncHandler(async (req, res) => {
     const { star, comment, pid } = req.body;
     if (!star || !pid) throw new Error("Missing input");
     const ratingProduct = await Product.findById(pid);
-    const alreadyRating = ratingProduct?.ratings?.some((el) =>
-        el.postedBy.some((uid) => uid === _id)
+    const alreadyRating = ratingProduct?.ratings?.find(
+        (el) => el.postedBy.toString() === _id
     );
+    console.log(alreadyRating);
+    //update star & cm
+    //$elemMatch đc sử dụng để tìm các tài liệu trong 1 mảng sao cho 1 || nhiều điều kiện được xác định, thường dùng như mảng các đối tượng hoặc mảng các giá trị
     if (alreadyRating) {
+        await Product.updateOne(
+            {
+                ratings: { $elemMatch: alreadyRating },
+            },
+            // $ ở đây là đại diện cho phần tử mà bạn đã tìm thấy qua đk truy vấn
+            { $set: { "ratings.$.star": star, "ratings.$.comment": comment } },
+            { new: true }
+        );
     } else {
-        const response = await Product.findById(
+        await Product.findByIdAndUpdate(
             pid,
             {
                 $push: { ratings: { star, comment, postedBy: _id } },
@@ -130,7 +141,9 @@ const ratings = asyncHandler(async (req, res) => {
             { new: true }
         );
     }
-    return res.status(200).json({});
+    return res.status(200).json({
+        status: true,
+    });
 });
 
 module.exports = {
