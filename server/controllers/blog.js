@@ -38,14 +38,13 @@ const getBlogs = asyncHandler(async (req, res) => {
  b2 Check xem tc đó ng đó đã like ch ch => nếu like rồi thì bỏ like / thêm like
 */
 
-//like and dislike in blog
+//like in blog
 const likeBlogs = asyncHandler(async (req, res) => {
     const { _id } = req.user;
-    const { bid } = req.body;
-    console.log(bid);
+    const { bid } = req.params;
     if (!bid) throw new Error("Missing inputs");
     const blog = await Blog.findById(bid);
-    const alreadyDisliked = blog?.dislikes?.find((el) => el.toString() === _id);
+    const alreadyDisliked = blog?.dislikes?.includes(_id);
     // kéo id và cập nhật lại giá trị
     if (alreadyDisliked) {
         const response = await Blog.findByIdAndUpdate(
@@ -61,7 +60,7 @@ const likeBlogs = asyncHandler(async (req, res) => {
         });
     }
     //kiểm tra xem đã like ch?
-    const isLiked = blog?.likes.find((el) => el.toString() === _id);
+    const isLiked = blog?.likes?.includes(_id);
     if (isLiked) {
         const response = await Blog.findByIdAndUpdate(
             bid,
@@ -89,9 +88,61 @@ const likeBlogs = asyncHandler(async (req, res) => {
     }
 });
 
+//dislike in blog
+const dislikeBlogs = asyncHandler(async (req, res) => {
+    const { _id } = req.user;
+    const { bid } = req.params;
+    console.log(bid);
+    if (!bid) throw new Error("Missing inputs");
+    const blog = await Blog.findById(bid);
+    const alreadyLiked = blog?.likes?.includes(_id);
+    // kéo id và cập nhật lại giá trị
+    if (alreadyLiked) {
+        const response = await Blog.findByIdAndUpdate(
+            bid,
+            {
+                $pull: { likes: _id },
+            },
+            { new: true }
+        );
+        return res.json({
+            success: response ? true : false,
+            rs: response,
+        });
+    }
+    //kiểm tra xem đã dislike ch?
+    const isDisliked = blog?.dislikes?.includes(_id);
+    if (isDisliked) {
+        const response = await Blog.findByIdAndUpdate(
+            bid,
+            {
+                $pull: { dislikes: _id },
+            },
+            { new: true }
+        );
+        return res.json({
+            success: response ? true : false,
+            rs: response,
+        });
+    } else {
+        const response = await Blog.findByIdAndUpdate(
+            bid,
+            {
+                $push: { dislikes: _id },
+            },
+            { new: true }
+        );
+        return res.json({
+            success: response ? true : false,
+            rs: response,
+        });
+    }
+});
+
 module.exports = {
     createNewBlog,
     updateBlog,
     getBlogs,
     likeBlogs,
+    dislikeBlogs,
 };
