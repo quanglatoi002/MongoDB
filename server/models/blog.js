@@ -17,7 +17,7 @@ var blogSchema = new mongoose.Schema(
             unique: true,
         },
         numberViews: {
-            type: String,
+            type: Number,
             default: 0,
         },
         likes: [

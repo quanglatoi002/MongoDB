@@ -139,10 +139,41 @@ const dislikeBlogs = asyncHandler(async (req, res) => {
     }
 });
 
+// lấy thông tin người like và disliked
+const getBlog = asyncHandler(async (req, res) => {
+    const { bid } = req.params;
+    // tự động tăng thêm 1 khi có ng click vào bài
+    const blog = await Blog.findByIdAndUpdate(
+        bid,
+        { $inc: { numberViews: +1 } },
+        { new: true }
+    )
+        .populate("likes", "firstName lastName")
+        .populate("dislikes", "firstName lastName");
+    return res.json({
+        success: blog ? true : false,
+        rs: blog,
+    });
+});
+
+//delete
+const deleteBlog = asyncHandler(async (req, res) => {
+    const { bid } = req.params;
+    // tự động tăng thêm 1 khi có ng click vào bài
+    const blog = await Blog.findByIdAndDelete(bid);
+
+    return res.json({
+        success: blog ? true : false,
+        deletedBlog: blog || "Something went wrong",
+    });
+});
+
 module.exports = {
     createNewBlog,
     updateBlog,
     getBlogs,
     likeBlogs,
     dislikeBlogs,
+    getBlog,
+    deleteBlog,
 };
