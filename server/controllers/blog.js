@@ -148,6 +148,7 @@ const getBlog = asyncHandler(async (req, res) => {
         { $inc: { numberViews: +1 } },
         { new: true }
     )
+        // lấy cột firstName, lastName ở bảng User do ở cột likes và dislikes là khóa ngoại của bảng User
         .populate("likes", "firstName lastName")
         .populate("dislikes", "firstName lastName");
     return res.json({
@@ -168,6 +169,23 @@ const deleteBlog = asyncHandler(async (req, res) => {
     });
 });
 
+const uploadImageBlog = asyncHandler(async (req, res) => {
+    const { bid } = req.params;
+    if (!req.file) throw new Error("Missing inputs");
+    console.log(req.file.body);
+    const response = await Blog.findByIdAndUpdate(
+        bid,
+        {
+            image: req.file.path,
+        },
+        { new: true }
+    );
+    return res.status(200).json({
+        status: response ? true : false,
+        updatedBlog: response ? response : "Can't upload image blog",
+    });
+});
+
 module.exports = {
     createNewBlog,
     updateBlog,
@@ -176,4 +194,5 @@ module.exports = {
     dislikeBlogs,
     getBlog,
     deleteBlog,
+    uploadImageBlog,
 };
