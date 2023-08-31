@@ -150,7 +150,7 @@ const getBlog = asyncHandler(async (req, res) => {
     )
         // lấy cột firstName, lastName ở bảng User do ở cột likes và dislikes là khóa ngoại của bảng User
         .populate("likes", "firstName lastName")
-        .populate("dislikes", "firstName lastName");
+        .populate({ path: "dislikes", select: "firstName lastName" });
     return res.json({
         success: blog ? true : false,
         rs: blog,
