@@ -15,22 +15,27 @@ const createOrder = asyncHandler(async (req, res) => {
         count: el.quantity,
         color: el.color,
     }));
+    // total khi chưa có coupon
     let total = userCart?.cart?.reduce(
         (sum, el) => el.product.price * el.quantity + sum,
         0
     );
-    // 10000 * (1 - 30% / 100) = 70 / 1000 = 0,10 * 1000 => 100
+    const createData = { products, total, orderBy: _id };
+    //30% <=> 30 / 100
+    // 10000 * (1 - 30 / 100) = 70 / 1000 = 0,10 * 1000 => 100
     if (coupon) {
-        const selectedCoupon = await coupon.findById(coupon);
+        const selectedCoupon = await Coupon.findById(coupon);
         total =
             Math.round((total * (1 - +selectedCoupon?.discount / 100)) / 1000) *
-            1000;
+                1000 || total;
+        createData.total = total;
+        createData.coupon = coupon;
     }
-
-    const rs = await Order.create({ products, total, orderBy: _id });
+    console.log(total);
+    const rs = await Order.create(createData);
     return res.json({
         success: rs ? true : false,
-        rs: rs ? rs : "Something went wrong",
+        response: rs ? rs : "Something went wrong",
     });
 });
 
@@ -46,17 +51,26 @@ const updateStatus = asyncHandler(async (req, res) => {
     );
     return res.json({
         success: response ? true : false,
-        rs: response ? response : "Something went wrong",
+        response: response ? response : "Something went wrong",
     });
 });
 
-//get
+//getUserOrder
 const getUserOrder = asyncHandler(async (req, res) => {
     const { _id } = req.user;
     const response = await Order.find({ orderBy: _id });
     return res.json({
         success: response ? true : false,
-        rs: response ? response : "Something went wrong",
+        response: response ? response : "Something went wrong",
+    });
+});
+
+//getOrders admin
+const getOrders = asyncHandler(async (req, res) => {
+    const response = await Order.find();
+    return res.json({
+        success: response ? true : false,
+        response: response ? response : "Something went wrong",
     });
 });
 
@@ -64,4 +78,5 @@ module.exports = {
     createOrder,
     updateStatus,
     getUserOrder,
+    getOrders,
 };

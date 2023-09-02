@@ -5,6 +5,6 @@ const { verifyAccessToken, isAdmin } = require("../middlewares/verifyToken");
 
 router.post("/", [verifyAccessToken], ctrlc.createOrder);
 router.put("/:oid/status", [verifyAccessToken, isAdmin], ctrlc.updateStatus);
-// router.post("/", [verifyAccessToken, isAdmin], ctrlc.createNewBlog);
-
+router.get("/", [verifyAccessToken], ctrlc.getUserOrder);
+router.get("/admin", [verifyAccessToken, isAdmin], ctrlc.getOrders);
 module.exports = router;
